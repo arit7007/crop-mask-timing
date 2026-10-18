@@ -32,8 +32,7 @@ DEFAULT_STATES = [
 STUDY_STATES = [
     "IA", "IL", "IN", "OH",  # Core Corn Belt
     "MN", "WI", "MO",        # Extended Corn Belt
-    "KS", "ND", "SD",        # Northern Great Plains
-    "NE",
+    "KS", "ND", "SD", "NE",  # Northern Great Plains
 ]
 
 # Note: CA is excluded due to sparse field crop coverage (mostly specialty crops).
