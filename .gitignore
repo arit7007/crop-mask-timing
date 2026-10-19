@@ -1,0 +1,33 @@
+# ---- secrets and local settings
+.env
+*.env
+!.env.example
+
+# ---- environment
+.venv/
+__pycache__/
+*.py[cod]
+.idea/
+
+# ---- data: data/raw comes from the data/inputs_*.zip files; these processed files are rebuilt
+data/raw/
+data/processed/merged*.csv
+data/processed/features_by_cutoff*.csv
+data/processed/vegetation_*.csv
+
+# ---- run logs
+logs/
+*.log
+
+# ---- inexpensive reports rebuilt from saved results or local inputs
+results/figures/*.svg
+results/mask_purity*_summary.csv
+results/input_checks*.csv
+results/unit_checks*.md
+
+# ---- report sources and editor settings (kept locally; share the final PDF instead)
+report/
+.vscode/
+
+# ---- local experiments not part of the study
+scratch/
