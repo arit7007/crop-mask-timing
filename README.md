@@ -118,6 +118,7 @@ and reports when either is skipped.
 | `validation/check_units.py` | Input ranges, missing values, temperature ordering, and yield units. |
 | `validation/verify_results.py` | Independently refits August and September corn results and checks all 24 comparisons against the saved results. |
 | `validation/verify_masks.py` | Recalculates county NDVI in Earth Engine for three counties per state and compares it with the saved summaries for the three main masks. |
+| `validation/test_validation.py` | Tests that the three checks above fail when results are missing, duplicated, changed or out of range. |
 
 The first two run with `run_study.py --validate`. The Earth Engine check runs
 separately and needs an Earth Engine account:
@@ -129,6 +130,12 @@ uv run python validation/verify_masks.py --product MOD13Q1
 It checks 2022-2025 by default. For a smaller check, add `--years 2023 2025`.
 Include 2022 or 2023 for the strict 30 m CDL check. A run replaces
 `results/verify_masks_250m.csv`.
+
+The tests need no data or accounts and run in seconds:
+
+```powershell
+uv run python -m unittest discover -s validation -p test_validation.py
+```
 
 ## Results
 
