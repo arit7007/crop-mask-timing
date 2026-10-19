@@ -56,7 +56,7 @@ RETRY_LOG = logging.getLogger(__name__)
 CODE_ERROR_TYPES = (NameError, AttributeError, ImportError, TypeError, KeyError, ValueError)
 
 # ---------------------------------------------------------------------------
-# FILE PATHS
+# OUTPUT FILES AND SETTINGS
 # ---------------------------------------------------------------------------
 PROCESSED_DIR = DATA_PATH / "processed"
 
@@ -64,11 +64,11 @@ MONTHLY_OUTPUT_FILE = RAW_DIR / "vegetation_monthly.csv"
 YEARLY_OUTPUT_FILE = PROCESSED_DIR / "vegetation.csv"
 CHECKPOINT_FILE = RAW_DIR / "vegetation_checkpoint.json"
 
-# Nondefault masks, products and scales use separate variant files.
+# Defaults; main() overrides them from the command line. Non-default runs
+# write to separate variant files.
 USE_CROP_MASK = True
-REDUCE_SCALE = None          # None means the asset's native scale
-# MOD13A3 is monthly at 1 km. MOD13Q1 is 16-day at 250 m; its composites are
-# combined by month in get_monthly_vegetation_stats().
+REDUCE_SCALE = None          # None = the asset's native scale
+# MOD13A3: monthly, 1 km. MOD13Q1: 16-day, 250 m, grouped by month below.
 MODIS_PRODUCTS = {
     "MOD13A3": "MODIS/061/MOD13A3",
     "MOD13Q1": "MODIS/061/MOD13Q1",
@@ -81,7 +81,7 @@ MASK_YEAR_OFFSET = 0
 
 
 # ---------------------------------------------------------------------------
-# GEE INITIALIZATION
+# SETUP
 # ---------------------------------------------------------------------------
 
 def authenticate_gee(project_id: str = GEE_PROJECT_ID) -> None:
@@ -96,14 +96,14 @@ def authenticate_gee(project_id: str = GEE_PROJECT_ID) -> None:
     except Exception:
         ee.Authenticate()
         ee.Initialize(project=project_id)
-    # Without a deadline a dropped connection waits forever and the retry
-    # below never fires, which stalls a long run instead of failing it.
+    # Without a deadline a dropped connection hangs forever and the retry
+    # never fires.
     ee.data.setDeadline(300_000)
     logging.info("Google Earth Engine authenticated.")
 
 
 def setup_file_logging(log_file: Optional[str]) -> None:
-    """Write progress messages to a file when a path is provided."""
+    """Also write log messages to log_file, if given."""
     if not log_file:
         return
     path = Path(log_file)
@@ -120,11 +120,11 @@ def setup_file_logging(log_file: Optional[str]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# CHECKPOINT MANAGEMENT
+# CHECKPOINT
 # ---------------------------------------------------------------------------
 
 def load_checkpoint() -> Dict:
-    """Load checkpoint file tracking completed state-years."""
+    """Load the list of completed state-years."""
     if CHECKPOINT_FILE.exists():
         with open(CHECKPOINT_FILE, "r") as f:
             return json.load(f)
@@ -132,7 +132,7 @@ def load_checkpoint() -> Dict:
 
 
 def save_checkpoint(checkpoint: Dict) -> None:
-    """Save checkpoint to file."""
+    """Save the checkpoint."""
     CHECKPOINT_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(CHECKPOINT_FILE, "w") as f:
         json.dump(checkpoint, f, indent=2)
@@ -146,13 +146,13 @@ def _key(state_fips: str, year: int, crop_name: Optional[str] = None) -> str:
 
 def is_completed(checkpoint: Dict, state_fips: str, year: int,
                  crop_name: Optional[str] = None) -> bool:
-    """Check if a state-year is already completed."""
+    """Check whether a state-year is done."""
     return _key(state_fips, year, crop_name) in checkpoint.get("completed", [])
 
 
 def mark_completed(checkpoint: Dict, state_fips: str, year: int,
                    crop_name: Optional[str] = None) -> None:
-    """Mark a state-year as completed."""
+    """Mark a state-year as done and save."""
     k = _key(state_fips, year, crop_name)
     if k not in checkpoint["completed"]:
         checkpoint["completed"].append(k)
@@ -160,11 +160,11 @@ def mark_completed(checkpoint: Dict, state_fips: str, year: int,
 
 
 # ---------------------------------------------------------------------------
-# SMALL I/O HELPERS
+# HELPERS
 # ---------------------------------------------------------------------------
 
 def append_csv(df: pd.DataFrame, path) -> None:
-    """Append dataframe to CSV (create with header if not exists)."""
+    """Append to a CSV, writing the header only when creating it."""
     if df.empty:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -175,7 +175,7 @@ def append_csv(df: pd.DataFrame, path) -> None:
 
 
 def is_retryable_exception(exc: BaseException) -> bool:
-    """Retry temporary Earth Engine or network errors, but not code errors."""
+    """Retry temporary Earth Engine or network errors, not code errors."""
     return not isinstance(exc, CODE_ERROR_TYPES)
 
 
@@ -201,7 +201,7 @@ def get_monthly_vegetation_stats_with_retry(
 
 
 # ---------------------------------------------------------------------------
-# CACHES (avoid rebuilding same GEE objects repeatedly)
+# CACHES
 # ---------------------------------------------------------------------------
 
 _CROP_MASK_CACHE: Dict[int, ee.Image] = {}
@@ -225,7 +225,7 @@ def counties_cached(state_fips: str) -> ee.FeatureCollection:
 
 
 # ---------------------------------------------------------------------------
-# CORE GEE PROCESSING (FAST: ONE reduceRegions PER STATE-YEAR)
+# EARTH ENGINE
 # ---------------------------------------------------------------------------
 
 def get_monthly_vegetation_stats(
@@ -235,21 +235,20 @@ def get_monthly_vegetation_stats(
     crop_name: Optional[str] = None,
 ) -> pd.DataFrame:
     """
-    Download monthly vegetation statistics with one county reduction per state-year.
+    Monthly county NDVI and EVI for one state-year, from one reduceRegions call.
 
-    Returns monthly rows for the configured window, including season margins.
+    Covers the growing-season months plus one month either side.
 
     Columns:
       state_fips, county_fips, county_name, year, month, ndvi_mean, evi_mean
     """
-    # Keep extra months so season boundaries can be changed locally.
+    # The extra months let season boundaries change without re-downloading.
     months_to_fetch = get_required_months(slack=1)
 
     modis = ee.ImageCollection(MODIS_PRODUCT).select(["NDVI", "EVI", "SummaryQA"])
 
-    # The offset applies to the generic cropland mask as well, so a
-    # previous-year generic baseline can be built for comparison against the
-    # previous-year crop-specific mask.
+    # The offset also applies to the generic cropland mask, so it can serve
+    # as a baseline for the previous-year crop-specific mask.
     mask_year = year + MASK_YEAR_OFFSET
     if mask_year < 2008:
         raise ValueError(
@@ -262,7 +261,7 @@ def get_monthly_vegetation_stats(
     grid = modis.first().select("NDVI").projection()
 
     def scaled(src):
-        # SummaryQA: 0 good, 1 marginal, 2 snow/ice, 3 cloud. Keep 0-1 only.
+        # SummaryQA: 0 good, 1 marginal, 2 snow/ice, 3 cloud. Keep 0-1.
         return (
             src.select(["NDVI", "EVI"])
             .multiply(0.0001)   # MODIS scale factor
@@ -271,13 +270,11 @@ def get_monthly_vegetation_stats(
 
     def month_images(start, end):
         if MODIS_PRODUCT == MODIS_PRODUCTS["MOD13A3"]:
-            # Already monthly, one image per month, labelled by its start.
-            # Its system:time_end is not a reliable cover date: the February
-            # 2023 image reports March 3.
+            # One image per month, labelled by its start date. Don't trust
+            # system:time_end: the February 2023 image says March 3.
             return modis.filterDate(start, end)
-        # 16-day product. Keep only composites whose whole window ends within
-        # the month, so no observation after the cutoff reaches its features.
-        # The window is 16 days from the start date.
+        # 16-day product: keep only composites whose 16-day window ends
+        # within the month, so no later observation leaks in.
         window = modis.filterDate(start.advance(-1, "month"), end)
         return window.map(
             lambda src: src.set(
@@ -293,9 +290,8 @@ def get_monthly_vegetation_stats(
         end = start.advance(1, "month")
         in_month = month_images(start, end)
 
-        # mean() returns an image with no fixed projection, so put the
-        # product's own grid back before the crop mask is applied. Masking a
-        # gridless image samples the CDL at the wrong resolution.
+        # mean() drops the projection. Restore the MODIS grid before masking,
+        # or the CDL mask is sampled at the wrong resolution.
         img = in_month.map(scaled).mean().setDefaultProjection(grid)
         if USE_CROP_MASK:
             img = img.updateMask(crop_mask)
@@ -305,15 +301,14 @@ def get_monthly_vegetation_stats(
 
     months = ee.List(months_to_fetch)
 
-    # Stack monthly images into one multiband image
+    # One band per index per month.
     stacked = ee.ImageCollection(months.map(month_to_img)).toBands()
 
-    # toBands prefixes band names like "0_NDVI_04". Remove the numeric prefix.
+    # toBands names bands like "0_NDVI_04"; drop the numeric prefix.
     band_names = stacked.bandNames()
     cleaned = band_names.map(lambda b: ee.String(b).replace('^[0-9]+_', ''))
     stacked = stacked.rename(cleaned)
 
-    # Reduce once across counties
     fc = stacked.reduceRegions(
         collection=counties_fc,
         reducer=ee.Reducer.mean(),
@@ -350,7 +345,7 @@ def get_monthly_vegetation_stats(
 
 
 # ---------------------------------------------------------------------------
-# MAIN DOWNLOAD FUNCTION
+# DOWNLOAD
 # ---------------------------------------------------------------------------
 
 def download_vegetation(
@@ -360,14 +355,10 @@ def download_vegetation(
     resume: bool = True,
 ) -> pd.DataFrame:
     """
-    Download vegetation indices for all specified states and years.
+    Download vegetation for every state and year requested.
 
-    Writes:
-      - monthly growing-season rows (raw/vegetation_monthly.csv)
-      - growing-season county-year aggregates (processed/vegetation.csv)
-
-    Returns:
-      A DataFrame of the last batch's yearly aggregates (not the full dataset).
+    Appends monthly rows to MONTHLY_OUTPUT_FILE and county-year aggregates to
+    YEARLY_OUTPUT_FILE. Returns only the last state-year's aggregates.
     """
     MONTHLY_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
     YEARLY_OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
@@ -389,7 +380,7 @@ def download_vegetation(
 
     checkpoint = load_checkpoint() if resume else {"completed": []}
 
-    # A fresh run should not append to old output files.
+    # A fresh run must not append to old output files.
     if not resume:
         CHECKPOINT_FILE.unlink(missing_ok=True)
         for f in (MONTHLY_OUTPUT_FILE, YEARLY_OUTPUT_FILE):
@@ -403,8 +394,7 @@ def download_vegetation(
         else (MASK_CROPS if CROP_SPECIFIC_MASK else [None])
     )
     total_tasks = len(states) * (end_year - start_year + 1) * len(crop_names)
-    already_completed = 0
-    # Count only the keys for this run.
+    # Count only checkpoint keys that belong to this request.
     requested_keys = set()
     for y in range(start_year, end_year + 1):
         for abbr in states:
@@ -484,14 +474,14 @@ def download_vegetation(
                 elapsed = time.time() - t0
                 logging.info(f"  ✓ {len(monthly_df)} monthly rows; {len(yearly_chunk)} county-year rows in {elapsed:.1f}s")
 
-                # Mark done after both files are written.
+                # Only after both files are written.
                 mark_completed(checkpoint, state_fips, year, CURRENT_MASK_CROP)
 
             except CODE_ERROR_TYPES as e:
                 logging.error(f"  FATAL (code error, not transient): {type(e).__name__}: {e}")
                 raise
             except Exception as e:
-                # Try this state, year, and crop again on the next run.
+                # Left out of the checkpoint, so the next run retries it.
                 logging.error(f"  Failed (will retry on re-run): {e}")
                 continue
 
@@ -524,9 +514,11 @@ def download_vegetation(
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
+def build_parser() -> argparse.ArgumentParser:
+    """Define the command-line options."""
     parser = argparse.ArgumentParser(
-        description="Download NDVI/EVI data with crop masking and state-specific seasons"
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
         "--states",
@@ -595,12 +587,11 @@ def main():
                         help="Also write progress logs to this file.")
     parser.add_argument("--aggregate-only", action="store_true",
                         help="Rebuild yearly features from local monthly data.")
+    return parser
 
-    args = parser.parse_args()
 
-    global USE_CROP_MASK, REDUCE_SCALE, CROP_SPECIFIC_MASK, MASK_CROPS, CURRENT_MASK_CROP, MASK_YEAR_OFFSET
-    global MODIS_PRODUCT
-    global MONTHLY_OUTPUT_FILE, YEARLY_OUTPUT_FILE, CHECKPOINT_FILE
+def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
+    """Reject invalid option combinations and fill in the default --variant."""
     if args.no_crop_mask and args.crop_specific_mask:
         parser.error("--no-crop-mask and --crop-specific-mask are mutually exclusive.")
     if args.mask_crops and not args.crop_specific_mask:
@@ -619,7 +610,6 @@ def main():
                 get_cdl_codes(crop)
         except KeyError as exc:
             parser.error(str(exc))
-    setup_file_logging(args.log_file)
     if args.crop_specific_mask and not args.variant:
         args.variant = "crop_specific_prev_year" if args.mask_year_offset == -1 else "crop_specific"
     if args.variant and (not args.variant.isascii() or not all(
@@ -627,8 +617,7 @@ def main():
     )):
         parser.error("--variant may contain only ASCII letters, numbers, underscores, and hyphens.")
     if args.variant:
-        # Naming and offset must agree, so previous-year data cannot land in a
-        # same-year file.
+        # Stops previous-year data landing in a same-year file.
         if ("prev_year" in args.variant) != (args.mask_year_offset == -1):
             parser.error("The variant name does not match --mask-year-offset.")
     if (args.no_crop_mask or args.scale or args.product or args.mask_year_offset
@@ -636,10 +625,16 @@ def main():
         parser.error("--no-crop-mask, --scale, --product, --mask-year-offset and "
                      "--out-dir change where or what the data is, so they need "
                      "--variant to keep the production files intact.")
+
+
+def apply_args(args: argparse.Namespace) -> None:
+    """Copy the parsed options into the module settings."""
+    global USE_CROP_MASK, REDUCE_SCALE, CROP_SPECIFIC_MASK, MASK_CROPS, MASK_YEAR_OFFSET
+    global MODIS_PRODUCT
+    global MONTHLY_OUTPUT_FILE, YEARLY_OUTPUT_FILE, CHECKPOINT_FILE
     if args.variant:
         v = args.variant
-        # A variant belongs to whoever asked for it, so the caller says where
-        # it goes. Without --out-dir it lands in data/.
+        # Variant files go under --out-dir, or data/ if not given.
         out_dir = Path(args.out_dir) if args.out_dir else DATA_PATH
         if not out_dir.is_absolute():
             out_dir = DATA_PATH.parent / out_dir
@@ -660,6 +655,39 @@ def main():
                  f"mask-year offset: {MASK_YEAR_OFFSET} | "
                  f"scale: {REDUCE_SCALE or 'native'} | "
                  f"output: {YEARLY_OUTPUT_FILE.name}")
+
+
+def run_crop_specific(states: List[str], args: argparse.Namespace, resume: bool) -> None:
+    """Download one crop at a time, appending every crop to the same files."""
+    global CROP_SPECIFIC_MASK, CURRENT_MASK_CROP
+    if not resume:
+        for f in (MONTHLY_OUTPUT_FILE, YEARLY_OUTPUT_FILE, CHECKPOINT_FILE):
+            if f.exists():
+                logging.warning(f"Not resuming: removing existing {f}")
+                f.unlink()
+        resume = True
+
+    CROP_SPECIFIC_MASK = False
+    for crop_name in MASK_CROPS:
+        CURRENT_MASK_CROP = crop_name
+        logging.info(f"Crop-specific vegetation pass: {crop_name}")
+        download_vegetation(
+            states=states,
+            start_year=args.start_year,
+            end_year=args.end_year,
+            resume=resume,
+        )
+    CURRENT_MASK_CROP = None
+    CROP_SPECIFIC_MASK = True
+
+
+def main():
+    parser = build_parser()
+    args = parser.parse_args()
+    validate_args(parser, args)
+    setup_file_logging(args.log_file)
+    apply_args(args)
+
     states = resolve_states(args.states, args.study)
     resume = args.resume and not args.no_resume
 
@@ -670,26 +698,7 @@ def main():
     authenticate_gee()
 
     if CROP_SPECIFIC_MASK:
-        if not resume:
-            for f in (MONTHLY_OUTPUT_FILE, YEARLY_OUTPUT_FILE, CHECKPOINT_FILE):
-                if f.exists():
-                    logging.warning(f"Not resuming: removing existing {f}")
-                    f.unlink()
-            resume = True
-
-        # Download one crop at a time and append all crops to the same table.
-        CROP_SPECIFIC_MASK = False
-        for crop_name in MASK_CROPS:
-            CURRENT_MASK_CROP = crop_name
-            logging.info(f"Crop-specific vegetation pass: {crop_name}")
-            download_vegetation(
-                states=states,
-                start_year=args.start_year,
-                end_year=args.end_year,
-                resume=resume,
-            )
-        CURRENT_MASK_CROP = None
-        CROP_SPECIFIC_MASK = True
+        run_crop_specific(states, args, resume)
         return
 
     download_vegetation(
