@@ -57,20 +57,19 @@ Refit the models and rerun the main analysis using the included data, without
 downloading from the original sources:
 
 ```powershell
-tar -xkf data/inputs_1km.zip
-tar -xkf data/inputs_250m.zip
+uv run python -m zipfile -e data/inputs_1km.zip .
+uv run python -m zipfile -e data/inputs_250m.zip .
 uv run python src/merge.py
 uv run python src/compare_masks_by_month.py --product MOD13A3 --table-only
 uv run python src/run_study.py --validate
 ```
 
-On macOS or Linux, use `unzip -n` instead of `tar -xkf`. These commands keep
-existing input files; check them against the checksums in [Inputs](#inputs).
-
-`merge.py` joins the processed tables. The `--table-only` command prepares the
-1 km comparison without fitting models. The final command fits the 250 m
-models, rebuilds outputs, runs the unit checks, and independently refits the
-main late-season corn results. It uses local files and can take a long time.
+The first two commands put the paper's exact inputs in `data/raw/`, replacing
+any files already there. `merge.py` joins the processed tables. The
+`--table-only` command prepares the 1 km comparison without fitting models.
+The final command fits the 250 m models, rebuilds outputs, runs the unit
+checks, and independently refits the main late-season corn results. It uses
+local files and can take a long time.
 
 Use `uv run python src/run_study.py` to run the analysis without the additional
 validation. `--quick --validate` checks saved validation reports without
@@ -85,16 +84,8 @@ The monthly inputs and crop-progress data used for the paper are included in:
 - `data/inputs_250m.zip`: the 250 m vegetation files, plus the 1 km
   crop-specific vegetation files.
 
-`data/inputs_sha256.txt` lists their checksums. In Git Bash or Linux, check the
-extracted files with:
-
-```bash
-sha256sum -c data/inputs_sha256.txt
-```
-
-Every line should say OK. On macOS, use
-`shasum -a 256 -c data/inputs_sha256.txt`. In PowerShell, use
-`Get-FileHash <file>` and compare its SHA-256 value with the listed checksum.
+`data/inputs_sha256.txt` lists the SHA-256 checksum of every input file, so you
+can confirm the files are unchanged.
 
 `data/processed/` holds the yield, climate, vegetation and soil tables.
 `merge.py` joins them into `merged.csv`, and the analysis rebuilds the climate
