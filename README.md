@@ -134,12 +134,12 @@ Outputs are written to `results/`:
 
 | File | What it holds | Made by |
 | --- | --- | --- |
-| `masks_by_month*.csv` | Main comparison by crop, cutoff, model, test and arm | `compare_masks_by_month.py` |
+| `masks_by_month*.csv` | Main comparison by crop, cutoff, model, test and mask (`arm`) | `compare_masks_by_month.py` |
 | `masks_by_month*_by_year.csv` | The same comparison for each test year | `compare_masks_by_month.py` |
 | `masks_by_month_250m_matched*.csv` | Main comparison on the county-years both products share | `compare_masks_by_month.py --match-product` |
 | `masks_by_state_250m.csv` | Results by state | `compare_masks_by_state.py` |
 | `masks_rotation_250m*.csv` | Rotation-rule test | `compare_masks_by_month.py --include-rotation-proxy` |
-| `masks_prev_year_cropland_250m*.csv` | Previous-year cropland arm | `compare_masks_by_month.py --include-prev-year-cropland` |
+| `masks_prev_year_cropland_250m*.csv` | Previous-year cropland mask | `compare_masks_by_month.py --include-prev-year-cropland` |
 | `two_mask_contrast_250m.csv` | Previous-year crop mask against previous-year cropland | `compare_two_masks.py` |
 | `harvest_timing_250m.csv` | August and September results limited by harvest progress | `check_harvest_timing.py` |
 | `mask_purity*.csv` | Share of target crop in the MODIS pixels each mask keeps | `measure_mask_purity.py` |
@@ -198,8 +198,9 @@ uv run python src/download_vegetation.py --study --start_year 2009 --end_year 20
 uv run python src/download_vegetation.py --study --start_year 2009 --end_year 2025 --product MOD13Q1 --variant prev_year_cropland_250m --mask-year-offset -1
 ```
 
-Each vegetation `--variant` writes a separate file in `data/raw/`. The
-previous-year maps start in 2009 because nationwide CDL coverage begins in
+Each vegetation `--variant` writes separate files in `data/raw/` (monthly) and
+`data/processed/` (yearly). The analysis uses only the monthly variant files.
+The previous-year maps start in 2009 because nationwide CDL coverage begins in
 2008. The 250 m downloads can take hours and save progress so they can resume.
 After downloading, follow [Quick start](#quick-start) from `merge.py` onward.
 
