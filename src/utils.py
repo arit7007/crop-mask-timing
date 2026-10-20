@@ -5,6 +5,7 @@
 import logging
 from pathlib import Path
 from typing import List, TYPE_CHECKING
+import re
 
 import pandas as pd
 
@@ -33,6 +34,9 @@ def _require_ee():
         ) from e
     return ee
 
+def redact(text) -> str:
+    """Hide the NASS API key in URLs and error messages, keeping its last 4 characters."""
+    return re.sub(r"key=([^&\s]*)([^&\s]{4})", r"key=****\2", str(text))
 
 # ---------------------------------------------------------------------------
 # COUNTY GEOMETRIES

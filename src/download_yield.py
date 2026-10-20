@@ -74,11 +74,11 @@ def make_request_with_retry(params: dict) -> list:
     """Quick Stats /api_GET request with retry logic."""
     # (connect, read): fail fast on a dead host, but be patient once connected.
     resp = requests.get(NASS_BASE_URL, params=params, headers=HEADERS, timeout=(15, 300))
-    logging.debug(f"URL: {resp.url}")
+    logging.debug(f"URL: {utils.redact(resp.url)}")
     status = resp.status_code
 
     if status in (400, 404):
-        logging.warning(f"{status} — permanent failure for {resp.url}")
+        logging.warning(f"{status} — permanent failure for {utils.redact(resp.url)}")
         return []
 
     try:
@@ -90,7 +90,7 @@ def make_request_with_retry(params: dict) -> list:
     try:
         return resp.json().get("data", [])
     except requests.exceptions.JSONDecodeError:
-        logging.error(f"Invalid JSON from {resp.url} — skipping")
+        logging.error(f"Invalid JSON from {utils.redact(resp.url)} — skipping")
         return []
 
 
@@ -159,7 +159,7 @@ def get_usda_crop_yield(
             data = fetch_all_pages(params)
         except Exception as e:
             failed_states.append(state)
-            logging.error(f"  FAILED {state}: {type(e).__name__}: {e}")
+            logging.error(f"  FAILED {state}: {type(e).__name__}: {utils.redact(e)}")
             logging.error(f"  Continuing; re-run with --states {state} to fill this gap "
                           f"(merged into the existing table, nothing else is touched).")
             continue

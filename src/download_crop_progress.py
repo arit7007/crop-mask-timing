@@ -16,6 +16,7 @@ import pandas as pd
 import requests
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from utils import redact
 from config import NASS_API_KEY, NASS_BASE_URL, DATA_PATH
 
 
@@ -153,7 +154,7 @@ def main() -> None:
                 log.info("Received %s rows", len(part))
             except requests.RequestException as error:
                 failures.append(f"{crop}-{state}")
-                log.error("Failed %s %s: %s", crop, state, error)
+                log.error("Failed %s %s: %s", crop, state, redact(error))
             time.sleep(1)
 
     if failures:
