@@ -1,7 +1,7 @@
 """Run or check the crop-mask timing analysis.
 
 The reported results use MOD13Q1 at 250 m, so that is the default.
-Use --product MOD13A3 for the 1 km
+Use --product MOD13A3 for the 1 km analysis.
 
 Run from the project root:
     python src/run_study.py                      # full analysis

@@ -147,7 +147,10 @@ Outputs are written to `results/`:
 | `verify_masks_250m.csv` | Independent rebuild of the county means from the CDL | `verify_masks.py` |
 | `unit_checks_250m.csv` | Unit and range checks on the model inputs | `check_units.py` |
 
-The figures, purity summaries and input-check reports are ignored by Git.
+The figures, purity summaries, input-check tables and the Markdown unit-check
+report are ignored by Git. `unit_checks_250m.csv` is kept because
+`run_study.py --quick --validate` reads it.
+
 Rebuild the figures and purity summaries from saved results with:
 
 ```powershell
