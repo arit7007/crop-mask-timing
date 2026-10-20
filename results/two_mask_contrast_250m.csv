@@ -1,0 +1,9 @@
+crop,cutoff_month,model,evaluation,numerator,denominator,n_test,test_years,ratio,ratio_lo,ratio_hi,excludes_one
+CORN,8,random_forest,temporal_holdout,previous_year,previous_year_cropland,2805,2022-2025,1.0221591423377596,1.006037963105556,1.0377824262134152,True
+CORN,8,hist_gradient_boosting,temporal_holdout,previous_year,previous_year_cropland,2805,2022-2025,1.0118855386218641,0.9928330007714904,1.0307742205904067,False
+SOYBEANS,8,random_forest,temporal_holdout,previous_year,previous_year_cropland,2684,2022-2025,1.0211349124786713,1.0071914988131545,1.035249826068086,True
+SOYBEANS,8,hist_gradient_boosting,temporal_holdout,previous_year,previous_year_cropland,2684,2022-2025,1.0128520308544287,0.9979125373001816,1.0280680025349558,False
+CORN,9,random_forest,temporal_holdout,previous_year,previous_year_cropland,2805,2022-2025,1.0295925751754993,1.0112188035577871,1.0472094009387236,True
+CORN,9,hist_gradient_boosting,temporal_holdout,previous_year,previous_year_cropland,2805,2022-2025,1.0237507668323056,1.004330053646098,1.0440483451741502,True
+SOYBEANS,9,random_forest,temporal_holdout,previous_year,previous_year_cropland,2684,2022-2025,1.01625944994137,0.998733397709349,1.0326171544860998,False
+SOYBEANS,9,hist_gradient_boosting,temporal_holdout,previous_year,previous_year_cropland,2684,2022-2025,1.0236617719015564,1.0069110896965574,1.0383831284052092,True

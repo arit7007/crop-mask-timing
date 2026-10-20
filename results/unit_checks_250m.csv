@@ -1,0 +1,35 @@
+group,variable,source_unit,model_unit,minimum,maximum,missing,passed,note
+climate,TMIN,K,degrees C,1.4037393841980488,19.15657011107615,0,True,"Daily minimum temperature, converted from K before monthly aggregation."
+climate,TMAX,K,degrees C,14.19544115666764,34.73794359147225,0,True,"Daily maximum temperature, converted from K before monthly aggregation."
+climate,PRCP,mm/day,mm/day,0.5141297937923127,9.132332577492162,0,True,"Daily precipitation totals summed, then divided by observed season days."
+climate,VPD,kPa,kPa,0.44300560394645433,2.686269331854656,0,True,Growing-season day-weighted mean vapor pressure deficit.
+climate,ETO,mm/day,mm/day,3.1672329827887586,8.519144986231051,0,True,"Daily reference ET summed, then divided by observed season days."
+climate,SRAD,W/m2,W/m2,211.70323921346602,304.87482992881894,0,True,Growing-season day-weighted mean shortwave radiation.
+climate,GDD_TMAX,degrees C/day,degrees C/day,6.24609321449766,17.758955581104786,0,True,"Tmax-based heat exposure rate, not conventional GDD."
+climate,EDD_TMAX,degrees C/day,degrees C/day,0.0,7.284038591807259,0,True,Tmax degrees above 29 C per season day.
+climate,HOT_DAY_FRAC,fraction,fraction,0.0,0.7628568164073657,0,True,Fraction of season days with Tmax above 29 C.
+climate,TMAX_MAX,degrees C,degrees C,26.233793141835445,47.95214297158878,0,True,Maximum daily Tmax during the included months.
+soil,clay_mean,percent kg/kg,percent kg/kg,11.783786243545968,40.76546136943965,0,True,Thickness-weighted 0-30 cm OpenLandMap estimate.
+soil,ph_mean,pH x 10,pH,5.475624018499443,7.820803088492038,0,True,OpenLandMap values multiplied by 0.1.
+soil,soc_mean,stored unit x 5 g/kg,g/kg,7.3363945127533885,69.62605761955396,0,True,OpenLandMap values multiplied by 5.
+soil,bdod_mean,stored unit x 10 kg/m3,g/cm3,1.2715565283117944,1.6574250338818697,0,True,OpenLandMap values multiplied by 0.01.
+vegetation,evi_min_year__cropland,integer x 0.0001,unitless index,-0.0632962962962963,0.5258018676541996,0,True,"MOD13Q1, cropland: expected MODIS scale factor 0.0001."
+vegetation,evi_mean_year__cropland,integer x 0.0001,unitless index,0.09614262580000295,0.5667792571092041,0,True,"MOD13Q1, cropland: expected MODIS scale factor 0.0001."
+vegetation,evi_max_year__cropland,integer x 0.0001,unitless index,0.1552728649534605,0.8285622418059959,0,True,"MOD13Q1, cropland: expected MODIS scale factor 0.0001."
+vegetation,ndvi_min_year__cropland,integer x 0.0001,unitless index,-0.0348666666666666,0.7136504229408976,0,True,"MOD13Q1, cropland: expected MODIS scale factor 0.0001."
+vegetation,ndvi_mean_year__cropland,integer x 0.0001,unitless index,0.19499659778787204,0.7638254812834224,0,True,"MOD13Q1, cropland: expected MODIS scale factor 0.0001."
+vegetation,ndvi_max_year__cropland,integer x 0.0001,unitless index,0.2313600781270682,0.9181255331114454,0,True,"MOD13Q1, cropland: expected MODIS scale factor 0.0001."
+vegetation,evi_min_year__same_year_oracle,integer x 0.0001,unitless index,-0.082175,0.4510688898433345,0,True,"MOD13Q1, same_year_oracle: expected MODIS scale factor 0.0001."
+vegetation,evi_mean_year__same_year_oracle,integer x 0.0001,unitless index,0.07857961880310334,0.5532335,0,True,"MOD13Q1, same_year_oracle: expected MODIS scale factor 0.0001."
+vegetation,evi_max_year__same_year_oracle,integer x 0.0001,unitless index,0.1454249073193181,0.8683580472440635,0,True,"MOD13Q1, same_year_oracle: expected MODIS scale factor 0.0001."
+vegetation,ndvi_min_year__same_year_oracle,integer x 0.0001,unitless index,-0.0348818181818181,0.645170155847343,0,True,"MOD13Q1, same_year_oracle: expected MODIS scale factor 0.0001."
+vegetation,ndvi_mean_year__same_year_oracle,integer x 0.0001,unitless index,0.174934587292943,0.7513680555555555,0,True,"MOD13Q1, same_year_oracle: expected MODIS scale factor 0.0001."
+vegetation,ndvi_max_year__same_year_oracle,integer x 0.0001,unitless index,0.2358672364369494,0.9255713967508457,0,True,"MOD13Q1, same_year_oracle: expected MODIS scale factor 0.0001."
+vegetation,evi_min_year__previous_year,integer x 0.0001,unitless index,-0.0596642857142857,0.513477435558257,0,True,"MOD13Q1, previous_year: expected MODIS scale factor 0.0001."
+vegetation,evi_mean_year__previous_year,integer x 0.0001,unitless index,0.08578023285539287,0.55763,0,True,"MOD13Q1, previous_year: expected MODIS scale factor 0.0001."
+vegetation,evi_max_year__previous_year,integer x 0.0001,unitless index,0.1488412752595989,0.8631767789098703,0,True,"MOD13Q1, previous_year: expected MODIS scale factor 0.0001."
+vegetation,ndvi_min_year__previous_year,integer x 0.0001,unitless index,-0.0370642857142857,0.6853698276786673,0,True,"MOD13Q1, previous_year: expected MODIS scale factor 0.0001."
+vegetation,ndvi_mean_year__previous_year,integer x 0.0001,unitless index,0.16990463103271192,0.7445531578947369,0,True,"MOD13Q1, previous_year: expected MODIS scale factor 0.0001."
+vegetation,ndvi_max_year__previous_year,integer x 0.0001,unitless index,0.2405206771959751,0.9233870215799058,0,True,"MOD13Q1, previous_year: expected MODIS scale factor 0.0001."
+yield,yield_value,BU / ACRE,BU / ACRE,6.9,277.1,0,True,Corn and soybean are modeled separately; both use bushels per acre.
+cross_check,TMIN_le_TMAX,degrees C,degrees C,,,0,True,Every modeled county-year must have TMIN no greater than TMAX.
