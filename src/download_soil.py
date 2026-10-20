@@ -139,6 +139,7 @@ def authenticate_gee(project_id: str | None = GEE_PROJECT_ID) -> None:
             ee.Initialize(project=project_id)
         else:
             ee.Initialize()
+        ee.data.setDeadline(300_000)  # fail after 5 minutes instead of hanging
         logging.info("✓ Google Earth Engine initialized")
     except Exception as e:
         logging.error(f"✗ Failed to initialize Earth Engine: {e}")

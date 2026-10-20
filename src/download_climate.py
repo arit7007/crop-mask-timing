@@ -118,6 +118,7 @@ def init_gee(project_id: Optional[str] = GEE_PROJECT_ID) -> None:
             ee.Initialize(project=project_id)
         else:
             ee.Initialize()
+        ee.data.setDeadline(300_000)  # fail after 5 minutes instead of hanging
         logging.info("✓ Google Earth Engine initialized")
     except Exception as e:
         raise RuntimeError(f"Failed to initialize Earth Engine: {e}") from e

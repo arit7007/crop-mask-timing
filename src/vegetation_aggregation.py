@@ -1,14 +1,20 @@
 """Convert monthly vegetation observations into growing-season summaries."""
 
-import pandas as pd
 import logging
 from pathlib import Path
+
+import pandas as pd
 
 from config import get_growing_season
 
 
 def aggregate_to_yearly(monthly_df: pd.DataFrame) -> pd.DataFrame:
-    """Aggregate monthly vegetation rows by county, year, and optional crop."""
+    """Summarize monthly vegetation into one row per county per year.
+
+    Rows outside the state's growing season are dropped first, when
+    state_abbr is present. Rows are also split by crop and mask_year
+    when those columns exist.
+    """
     if monthly_df.empty:
         return pd.DataFrame()
 
@@ -38,6 +44,7 @@ def aggregate_to_yearly(monthly_df: pd.DataFrame) -> pd.DataFrame:
         grouping_cols.append("mask_year")
 
     df = df.copy()
+    # n_months counts months where both NDVI and EVI are present.
     df["_both_present"] = (
         df["ndvi_mean"].notna() & df["evi_mean"].notna()
     ).astype(int)
@@ -57,8 +64,8 @@ def aggregate_to_yearly(monthly_df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def rebuild_from_file(monthly_path: Path, yearly_path: Path):
-    """Rebuild a yearly table locally, preserving identifiers and all summaries."""
+def rebuild_from_file(monthly_path: Path, yearly_path: Path) -> None:
+    """Re-aggregate the monthly CSV, add state_abbr back, and write the yearly CSV."""
     monthly = pd.read_csv(monthly_path, dtype={"county_fips": str, "state_fips": str})
     yearly = aggregate_to_yearly(monthly)
     if "state_abbr" in monthly and not yearly.empty:
