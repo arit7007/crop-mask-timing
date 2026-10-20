@@ -1,0 +1,15 @@
+[project]
+name = "crop-mask-timing"
+version = "0.1.0"
+requires-python = ">=3.14"
+dependencies = [
+    "earthengine-api>=1.1", # Google earthengine ee
+    "geopandas>=1.1.4",
+    "numpy>=2.5.2",
+    "pandas>=2.2",
+    "pygris>=0.1.6",        # county geometries / FIPS
+    "python-dotenv>=1.0",   # config.py reads .env
+    "requests>=2.32",       # download_yield.py (USDA NASS API)
+    "scikit-learn>=1.6",    # model fitting
+    "tenacity>=9.0",        # retry logic in the downloaders
+]
